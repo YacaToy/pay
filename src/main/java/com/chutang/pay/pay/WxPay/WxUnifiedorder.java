@@ -1,5 +1,7 @@
 package com.chutang.pay.pay.WxPay;
 
+import com.chutang.pay.exception.DefeatedException;
+import com.chutang.pay.http.HttpUtils;
 import com.github.wxpay.sdk.WXPay;
 import com.github.wxpay.sdk.WXPayUtil;
 import com.chutang.pay.pay.Unifiedorder;
@@ -14,7 +16,6 @@ import java.util.Map;
  * @time: 23:10
  */
 public class WxUnifiedorder implements Unifiedorder {
-
 
     @Override
     public Map<String, String> PayUnifiedorder(PayHouse payHouse) {
@@ -43,30 +44,63 @@ public class WxUnifiedorder implements Unifiedorder {
             Map<String, String> resp = null ;
             if (payHouse.getTradeType() == WxPayTradeType.NATIVEPAY){
                 resp = wxpay.unifiedOrder(data);
-//                logger.info(resp);
-                return resp ;
+                System.out.println("resp : "+resp);
+                isSUCCESS(resp);
+                Map<String, String> nativepayMap = new HashMap<String, String>();
+                nativepayMap.put("code_url",resp.get("code_url"));
+                System.out.println(nativepayMap);
+                return nativepayMap ;
             }else if (payHouse.getTradeType() == WxPayTradeType.JSAPIPAY){
                 resp = wxpay.unifiedOrder(data);
+                System.out.println("resp : "+resp);
+                isSUCCESS(resp);
                 Map<String, String> jsapipayMap = new HashMap<String, String>();
                 jsapipayMap.put("appId",payHouse.getMyConfig().getAppID());
-                long l = System.currentTimeMillis();System.out.println(l);
-                jsapipayMap.put("timeStamp", l+"");
+                jsapipayMap.put("timeStamp", System.currentTimeMillis()+"");
                 jsapipayMap.put("nonceStr",WXPayUtil.generateNonceStr());
                 jsapipayMap.put("package","prepay_id="+resp.get("prepay_id"));
                 jsapipayMap.put("signType","MD5");
                 jsapipayMap.put("paySign",WXPayUtil.generateSignature(jsapipayMap,payHouse.getMyConfig().getKey()));
-                jsapipayMap.put("return_code",resp.get("return_code"));
-//                logger.info(jsapipayMap);
+                System.out.println(jsapipayMap);
                 return jsapipayMap ;
             }else if (payHouse.getTradeType() == WxPayTradeType.H5PAT){
-
+                resp = wxpay.unifiedOrder(data);
+                System.out.println("resp : "+resp);
+                isSUCCESS(resp);
+                Map<String, String> h5patMap = new HashMap<String, String>();
+                h5patMap.put("mweb_url",getWeiUrl(resp.get("mweb_url"),payHouse.getRefererUrl()));
+                System.out.println(h5patMap);
+                return h5patMap ;
             }
-//            logger.info("is null");
+            System.out.println("is null");
             return resp;
         } catch (Exception e) {
-//            logger.info(e);
+            System.out.println(e);
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public String getWeiUrl(String url,String refererUrl) throws Exception {
+        Map<String, String> header = new HashMap<String, String>();
+        header.put("Accept-Language", "zh-CN,zh;q=0.9");
+        header.put("Accept-Encoding", "gzip, deflate, br");
+        header.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+        header.put("Referer", refererUrl);
+        header.put("Host", "wx.tenpay.com");
+        header.put("Upgrade-Insecure-Requests", "1");
+        header.put("Cache-Control", "no-cache");
+        header.put("Pragma", "no-cache");
+        String s = HttpUtils.get(url, null, header);
+        System.out.println("HTML ->"+s+" ->");
+        String temp=s.substring(s.indexOf("weixin://") , s.length() - 1);
+        return temp.substring(0, temp.indexOf("\""));
+    }
+
+    private void isSUCCESS(Map<String,String> resp) throws DefeatedException {
+        if (resp.get("result_code").equals("SUCCESS") || resp.get("return_msg").equals("OK")){
+        }else {
+            throw new DefeatedException();
         }
     }
 

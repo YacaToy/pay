@@ -16,6 +16,12 @@ public class PayHouse{
 
     private String limitPay ;
 
+    private String refererUrl;
+
+    public String getRefererUrl() {
+        return refererUrl;
+    }
+
     public String getLimitPay() {
         return limitPay;
     }
@@ -104,6 +110,7 @@ public class PayHouse{
 
     private PayHouse(Builder builder){
         this.MyConfig = builder.MyConfig;
+        this.refererUrl = builder.refererUrl;
         this.sign = builder.sign;
         this.signType = builder.signType ;
         this.body = builder.body ;
@@ -156,6 +163,13 @@ public class PayHouse{
 
         public Builder setLimitPay(String setLimitPay){
             this.limitPay = limitPay ;
+            return this ;
+        }
+
+        private String refererUrl ;
+
+        public Builder setRefererUrl(String refererUrl) {
+            this.refererUrl = refererUrl;
             return this ;
         }
 
